@@ -1,20 +1,44 @@
+import copy
+
 import streamlit as st
 import random
 
+
 st.markdown(
     """
-    <style>
+<style>
+        body {
+            text-align: center;
+        }
         button {
             height: 21vh;
         }
-        p {
+
+        p, label {
             text-align: center;
             size: 32px;
+        }
+        label {
+            text-align: center;
+        }
+        .stButtonGroup {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 1vw;
+        }
+        .stButtonGroup p {
+            font-size: 24px; /* Adjust the font size */
+            padding: 10px 20px; /* Adjust padding for larger pills */
+            margin: 0 5px; /* Space between pills */
+        }
+        .st-ae {
+            align-items: center;
         }
     </style>
     """, unsafe_allow_html=True
 )
-col1, col2, col3 = st.columns([0.3, 0.3, 0.3])
+col1, col2, col3 = st.columns([0.3, 0.3, 0.3], vertical_alignment="bottom")
 cols = [col1, col2, col3]
 player_symbols = {
     0:"", 1: "X", 2: "O"
@@ -66,24 +90,42 @@ def check_winner(board):
     for col in range(3):
         if board[0][col] != "" and board[0][col] == board[1][col] == board[2][col]:
             st.session_state.gameState["end"] = True
-            st.session_state.gameState["winner"] = row[0]
+            st.session_state.gameState["winner"] = board[0][col]
             disable_board()
 
     # Check diagonals
     if board[0][0] != "" and board[0][0] == board[1][1] == board[2][2]:
         st.session_state.gameState["end"] = True
-        st.session_state.gameState["winner"] = row[0]
+        st.session_state.gameState["winner"] = board[0][0]
         disable_board()
     if board[0][2] != "" and board[0][2] == board[1][1] == board[2][0]:
         st.session_state.gameState["end"] = True
-        st.session_state.gameState["winner"] = row[0]
+        st.session_state.gameState["winner"] = board[0][2]
         disable_board()
 
     if "" not in st.session_state.board[0] and "" not in st.session_state.board[1] and "" not in st.session_state.board[2]:
         st.session_state.gameState["end"] = True
         st.session_state.gameState["winner"] = "Tie"
 
-def random_bot():
+def symbolic_win_check(board, player):
+    # Check rows, columns, and diagonals for a win
+    for i in range(3):
+        # Check rows
+        if all(board[i][j] == player for j in range(3)):
+            return True
+        # Check columns
+        if all(board[j][i] == player for j in range(3)):
+            return True
+
+    # Check diagonals
+    if all(board[i][i] == player for i in range(3)):
+        return True
+    if all(board[i][2 - i] == player for i in range(3)):
+        return True
+
+    return False
+
+def random_bot(board):
     available_moves_count = len(st.session_state.availableMoves)
     try:
         random_pick = random.randint(0, available_moves_count-1)
@@ -93,6 +135,45 @@ def random_bot():
         button_clicked(row, col)
     except ValueError:
         return
+
+def strat_bot(board):
+    board_ptr = copy.deepcopy(board)
+    move_found = False
+    if board[1][1] == "":
+        move_found = True
+        button_clicked(1, 1)
+    else:
+        for i in range(3):
+            for j in range(3):
+                if board[i][j] == "":
+                    # Temporarily place "X" in the empty cell
+                    board_ptr[i][j] = "X"
+                    if symbolic_win_check(board_ptr, "X"):
+                        # If "X" wins, return the position to block
+                        move_found = True
+                        board_ptr[i][j] = ""  # Reset the cell
+                        button_clicked(i, j)
+                        break
+                    board_ptr[i][j] = ""  # Reset the cell
+    if not move_found:
+        available_moves_count = len(st.session_state.availableMoves)
+        try:
+            random_pick = random.randint(0, available_moves_count - 1)
+            move = st.session_state.availableMoves[random_pick]
+            row = move[0]
+            col = move[1]
+            button_clicked(row, col)
+        except ValueError:
+            return
+
+def perfect_bot(board):
+    pass
+
+bots = {
+    "Easy": random_bot,
+    "Medium": strat_bot,
+    "Hard": perfect_bot
+}
 
 def button_clicked(row, col):
     if st.session_state.current_player == 1:
@@ -104,10 +185,10 @@ def button_clicked(row, col):
 
         check_winner(st.session_state.board)
 
-        random_bot()
+        bots[difficulty_selection](st.session_state.board)
     else:
         st.session_state.board[row][col] = player_symbols[2]
-        st.session_state.current_player =1
+        st.session_state.current_player = 1
 
         st.session_state.board_lights[row][col] = True
         st.session_state.availableMoves.remove((row, col))
@@ -116,6 +197,7 @@ def button_clicked(row, col):
 
 
 
+# draw board
 for i in range(3):
     for j in range(3):
         with cols[i]:
@@ -132,8 +214,7 @@ if st.session_state.gameState["end"]:
         st.write("Tied!")
     else:
         st.write(f"{st.session_state.gameState["winner"]} has won!")
-else:
-    st.write(f"Current player: {player_symbols[st.session_state.current_player]}")
 
-#st.write(st.session_state.availableMoves)
-#st.write(len(st.session_state.availableMoves)-1)
+with st.container(key="pill_options"):
+    difficulty = ["Easy", "Medium", "Hard"]
+    difficulty_selection = st.pills("Pick AI difficulty:", difficulty, selection_mode="single", default="Easy", key="difficulty_selection")
