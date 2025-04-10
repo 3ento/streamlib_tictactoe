@@ -1,8 +1,9 @@
 import copy
-
+import numpy as np
 import streamlit as st
 import random
 
+from streamlit import button
 
 st.markdown(
     """
@@ -108,16 +109,12 @@ def check_winner(board):
         st.session_state.gameState["winner"] = "Tie"
 
 def symbolic_win_check(board, player):
-    # Check rows, columns, and diagonals for a win
     for i in range(3):
-        # Check rows
         if all(board[i][j] == player for j in range(3)):
             return True
-        # Check columns
         if all(board[j][i] == player for j in range(3)):
             return True
 
-    # Check diagonals
     if all(board[i][i] == player for i in range(3)):
         return True
     if all(board[i][2 - i] == player for i in range(3)):
@@ -166,8 +163,63 @@ def strat_bot(board):
         except ValueError:
             return
 
+def is_board_full(board):
+    for i in range(3):
+        for j in range(3):
+            if board[i][j] == "":
+                return False
+    return True
+
+def minimax(board, available_moves, depth, is_maximizing):
+    if symbolic_win_check(board, "O"):
+        return 10 - depth
+    elif symbolic_win_check(board, "X"):
+        return depth - 10
+    elif not available_moves:
+        return 0
+
+    if is_maximizing:
+        best_score = -float("inf")
+        for row, col in available_moves:
+            board[row][col] = "O"
+            new_moves = available_moves.copy()
+            new_moves.remove((row, col))
+            score = minimax(board, new_moves, depth + 1, False)
+            board[row][col] = ""
+            best_score = max(score, best_score)
+        return best_score
+    else:
+        best_score = float("inf")
+        for row, col in available_moves:
+            board[row][col] = "X"
+            new_moves = available_moves.copy()
+            new_moves.remove((row, col))
+            score = minimax(board, new_moves, depth + 1, True)
+            board[row][col] = ""
+            best_score = min(score, best_score)
+        return best_score
+
+def best_move(board):
+    best_score = -float("inf")
+    move = (-1, -1)
+    available_moves = st.session_state.availableMoves.copy()
+
+    for row, col in available_moves:
+        board[row][col] = "O"
+        new_moves = available_moves.copy()
+        new_moves.remove((row, col))
+        score = minimax(board, new_moves, 0, False)
+        board[row][col] = ""
+        if score > best_score:
+            best_score = score
+            move = (row, col)
+    return move
+
 def perfect_bot(board):
-    pass
+    move = best_move(board)
+    if move:
+        row, col = move
+        button_clicked(row, col)
 
 bots = {
     "Easy": random_bot,
@@ -176,25 +228,26 @@ bots = {
 }
 
 def button_clicked(row, col):
+    if st.session_state.gameState["end"]:
+        return
+
     if st.session_state.current_player == 1:
+        st.session_state.availableMoves.remove((row, col))
         st.session_state.board[row][col] = player_symbols[1]
         st.session_state.current_player = 2
-
         st.session_state.board_lights[row][col] = True
-        st.session_state.availableMoves.remove((row, col))
-
         check_winner(st.session_state.board)
-
         bots[difficulty_selection](st.session_state.board)
     else:
-        st.session_state.board[row][col] = player_symbols[2]
-        st.session_state.current_player = 1
-
-        st.session_state.board_lights[row][col] = True
-        st.session_state.availableMoves.remove((row, col))
-
+        if not st.session_state.availableMoves.__contains__((row, col)):
+            print(f"The bot is trying to play an illegal move - [{row}][{col}]")
+        else:
+            st.session_state.board[row][col] = player_symbols[2]
+            st.session_state.current_player = 1
+            st.session_state.board_lights[row][col] = True
+            st.session_state.availableMoves.remove((row, col))
         check_winner(st.session_state.board)
-
+    print(np.matrix(st.session_state.board))
 
 
 # draw board
@@ -202,11 +255,11 @@ for i in range(3):
     for j in range(3):
         with cols[i]:
             st.button(
-                st.session_state.board[i][j],
+                st.session_state.board[j][i],
                 key=f"{i} {j}",
-                on_click=button_clicked, args=(i, j),
+                on_click=button_clicked, args=(j, i),
                 use_container_width=True,
-                disabled=st.session_state.board_lights[i][j]
+                disabled=st.session_state.board_lights[j][i]
             )
 
 if st.session_state.gameState["end"]:
@@ -218,3 +271,4 @@ if st.session_state.gameState["end"]:
 with st.container(key="pill_options"):
     difficulty = ["Easy", "Medium", "Hard"]
     difficulty_selection = st.pills("Pick AI difficulty:", difficulty, selection_mode="single", default="Easy", key="difficulty_selection")
+    st.write("Current player: ", player_symbols[st.session_state.current_player])
