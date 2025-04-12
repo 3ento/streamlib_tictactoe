@@ -1,4 +1,4 @@
-from streamlit import columns, button, session_state,write,divider,markdown,pills,rerun,badge, container
+from streamlit import columns, button, session_state,write,divider,markdown,pills,rerun, container
 
 def render_board(column, callback_function):
     with column:
@@ -43,7 +43,7 @@ def render_side_panel(column, bots, button_clicked, switch_board_state, restart,
             game_start = button(session_state.start_btn_name, key="start_btn")
             if game_start:
                 if session_state.first == "Robot":
-                    bots[difficulty_selection](board=session_state.board, button_clicked=button_clicked)
+                    bots[difficulty_selection](board=session_state.board, button_clicked=button_clicked, ai_player_symbol=player_symbols[1], human_player_symbol=player_symbols[2])
                 switch_board_state()
                 rerun()
 

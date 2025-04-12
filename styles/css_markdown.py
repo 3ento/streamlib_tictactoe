@@ -69,6 +69,35 @@ custom_css = """
             height: 100%
         }
         
+        .stPopover {
+            padding-top: 20px;
+            font-size: 32px;
+        }
+            
+        header {
+            width: 20vw;
+        }
+        
+        .st-emotion-cache-ovf5rk {
+          font-family: "Source Sans Pro", sans-serif;
+          color: inherit;
+        }
+
+        .st-key-title {
+          padding-top: 3.5vh;
+        }
+        
+        .st-key-title button p {
+          font-size: 32px;
+        }
+        
+        .st-emotion-cache-h4xjwg {
+            left: auto;
+        }
+        
     </style>
     """
 
+project_description = '''
+Tic-Tac-Toe
+'''

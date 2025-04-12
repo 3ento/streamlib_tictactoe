@@ -4,7 +4,8 @@ from game.logic import *
 from game.session import initiate_session
 from styles.css_markdown import custom_css
 from bots.ai_difficulties import bots
-st.button("❓", disabled=True, help="hello")
+
+st.button("Tic-Tac-Toe", disabled=True, key="title")
 
 st.markdown(custom_css, unsafe_allow_html=True)
 
@@ -31,7 +32,10 @@ def button_clicked(row, col):
 
     check_winner(st.session_state.board)
 
-    if st.session_state.first == "Robot" and st.session_state.current_player == 1 or st.session_state.first == "You" and st.session_state.current_player == 2:
-        bots[difficulty_selection](board=st.session_state.board, button_clicked=button_clicked)
+    if st.session_state.first == "Robot" and st.session_state.current_player == 1:
+        bots[difficulty_selection](board=st.session_state.board, button_clicked=button_clicked, ai_player_symbol=player_symbols[1], human_player_symbol=player_symbols[2])
+    elif st.session_state.first == "You" and st.session_state.current_player == 2:
+        bots[difficulty_selection](board=st.session_state.board, button_clicked=button_clicked, ai_player_symbol=player_symbols[2], human_player_symbol=player_symbols[1])
+
 render_board(main_col1, button_clicked)
 difficulty_selection = render_side_panel(main_col2, bots, button_clicked, switch_board_state, restart, player_symbols)
