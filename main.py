@@ -1,9 +1,6 @@
 import copy
-import numpy as np
 import streamlit as st
 import random
-
-from streamlit import button
 
 st.markdown(
     """
@@ -36,11 +33,22 @@ st.markdown(
         .st-ae {
             align-items: center;
         }
+
+        .st-key-start_btn > div > button {
+            height: 24px;
+        }
+
+        .st-key-restart_btn > div > button {
+            height: 24px;
+        }
+
+        .stMainBlockContainer {
+            max-width: 100vw;
+        }
     </style>
     """, unsafe_allow_html=True
 )
-col1, col2, col3 = st.columns([0.3, 0.3, 0.3], vertical_alignment="bottom")
-cols = [col1, col2, col3]
+main_col1, main_col2 = st.columns([2, 1], border=True)
 player_symbols = {
     0:"", 1: "X", 2: "O"
 }
@@ -48,6 +56,10 @@ player_symbols = {
 # 1 = X, 2 = O
 if 'current_player' not in st.session_state:
     st.session_state.current_player = 1
+
+if 'first' not in st.session_state:
+    st.session_state.first = "You"
+    st.session_state.start_btn_name = "Start Game."
 
 if 'gameState' not in st.session_state:
     st.session_state.gameState = {
@@ -62,9 +74,9 @@ if 'board' not in st.session_state:
         ["", "", ""]
     ]
     st.session_state.board_lights = [
-        [False, False, False],
-        [False, False, False],
-        [False, False, False]
+        [True, True, True],
+        [True, True, True],
+        [True, True, True]
     ]
 
 if 'availableMoves' not in st.session_state:
@@ -72,12 +84,15 @@ if 'availableMoves' not in st.session_state:
          (0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)
     ]
 
-def disable_board():
-    st.session_state.board_lights = [
-        [True, True, True],
-        [True, True, True],
-        [True, True, True]
-    ]
+def switch_board_state(end=False):
+    if end:
+        for i in range(3):
+            for j in range(3):
+                st.session_state.board_lights[i][j] = True
+        return
+    for i in range(3):
+        for j in range(3):
+            st.session_state.board_lights[i][j] = not st.session_state.board_lights[i][j]
 
 def check_winner(board):
     # Check rows
@@ -85,24 +100,24 @@ def check_winner(board):
         if row[0] != "" and row[0] == row[1] == row[2]:
             st.session_state.gameState["end"] = True
             st.session_state.gameState["winner"] = row[0]
-            disable_board()
+            switch_board_state(True)
 
     # Check columns
     for col in range(3):
         if board[0][col] != "" and board[0][col] == board[1][col] == board[2][col]:
             st.session_state.gameState["end"] = True
             st.session_state.gameState["winner"] = board[0][col]
-            disable_board()
+            switch_board_state(True)
 
     # Check diagonals
     if board[0][0] != "" and board[0][0] == board[1][1] == board[2][2]:
         st.session_state.gameState["end"] = True
         st.session_state.gameState["winner"] = board[0][0]
-        disable_board()
+        switch_board_state(True)
     if board[0][2] != "" and board[0][2] == board[1][1] == board[2][0]:
         st.session_state.gameState["end"] = True
         st.session_state.gameState["winner"] = board[0][2]
-        disable_board()
+        switch_board_state(True)
 
     if "" not in st.session_state.board[0] and "" not in st.session_state.board[1] and "" not in st.session_state.board[2]:
         st.session_state.gameState["end"] = True
@@ -200,6 +215,9 @@ def minimax(board, available_moves, depth, is_maximizing):
         return best_score
 
 def best_move(board):
+    if len(st.session_state.availableMoves) == 9:
+        return (1,1)
+
     best_score = -float("inf")
     move = (-1, -1)
     available_moves = st.session_state.availableMoves.copy()
@@ -229,46 +247,64 @@ bots = {
 
 def button_clicked(row, col):
     if st.session_state.gameState["end"]:
-        return
+        return        
 
-    if st.session_state.current_player == 1:
-        st.session_state.availableMoves.remove((row, col))
-        st.session_state.board[row][col] = player_symbols[1]
-        st.session_state.current_player = 2
-        st.session_state.board_lights[row][col] = True
-        check_winner(st.session_state.board)
+    # remove position from the list of available moves
+    st.session_state.availableMoves.remove((row, col))
+
+    # mark the position on the graphical grid
+    st.session_state.board[row][col] = player_symbols[st.session_state.current_player]
+    st.session_state.board_lights[row][col] = not st.session_state.board_lights[row][col]
+
+    # switch player
+    st.session_state.current_player = st.session_state.current_player % 2 + 1
+
+    check_winner(st.session_state.board)
+
+    if st.session_state.first == "Robot" and st.session_state.current_player == 1 or st.session_state.first == "You" and st.session_state.current_player == 2:
         bots[difficulty_selection](st.session_state.board)
-    else:
-        if not st.session_state.availableMoves.__contains__((row, col)):
-            print(f"The bot is trying to play an illegal move - [{row}][{col}]")
-        else:
-            st.session_state.board[row][col] = player_symbols[2]
-            st.session_state.current_player = 1
-            st.session_state.board_lights[row][col] = True
-            st.session_state.availableMoves.remove((row, col))
-        check_winner(st.session_state.board)
-    print(np.matrix(st.session_state.board))
 
 
-# draw board
-for i in range(3):
-    for j in range(3):
-        with cols[i]:
-            st.button(
-                st.session_state.board[j][i],
-                key=f"{i} {j}",
-                on_click=button_clicked, args=(j, i),
-                use_container_width=True,
-                disabled=st.session_state.board_lights[j][i]
-            )
+with main_col1:
+    col1, col2, col3 = st.columns([0.3, 0.3, 0.3])
+    cols = [col1, col2, col3]
+    # draw board
+    for i in range(3):
+        for j in range(3):
+            with cols[i]:
+                st.button(
+                    st.session_state.board[j][i],
+                    key=f"{i} {j}",
+                    on_click=button_clicked, args=(j, i),
+                    use_container_width=True,
+                    disabled=st.session_state.board_lights[j][i]
+                )
 
 if st.session_state.gameState["end"]:
     if st.session_state.gameState["winner"] == "Tie":
         st.write("Tied!")
     else:
-        st.write(f"{st.session_state.gameState["winner"]} has won!")
+        st.write(st.session_state.gameState["winner"], " has won!")
 
-with st.container(key="pill_options"):
+with main_col2:
+    st.markdown("<div style='text-align: center; font-size: 24px;'>Pick AI difficulty:</div>", unsafe_allow_html=True)
     difficulty = ["Easy", "Medium", "Hard"]
-    difficulty_selection = st.pills("Pick AI difficulty:", difficulty, selection_mode="single", default="Easy", key="difficulty_selection")
-    st.write("Current player: ", player_symbols[st.session_state.current_player])
+    difficulty_selection = st.pills("", difficulty, selection_mode="single", default="Easy", key="difficulty_selection")
+
+    st.divider()
+
+    st.markdown("<div style='text-align: center; font-size: 24px;'>Who goes first?</div>", unsafe_allow_html=True)
+    who_goes_first = ["You", "Robot"]
+    st.session_state.first = st.pills("", who_goes_first, selection_mode="single", default="You", key="who_goes_first")
+
+    st.divider()
+
+    st.markdown("<div style='text-align: center;font-size: 24px;'>Start a new game:</div>", unsafe_allow_html=True)
+    gameStart = st.button(st.session_state.start_btn_name, key="start_btn")
+    if gameStart:
+        if st.session_state.first == "Robot":
+            bots[difficulty_selection](st.session_state.board)
+        switch_board_state()
+        st.rerun()
+
+    st.markdown(f"<div style='text-align: center;'>Current Player: {st.session_state.current_player}</div>", unsafe_allow_html=True)
