@@ -39,7 +39,7 @@ def best_move(board, ai_player_symbol, human_player_symbol):
     available_moves = session_state.availableMoves.copy()
 
     for row, col in available_moves:
-        board[row][col] = "O"
+        board[row][col] = ai_player_symbol
         new_moves = available_moves.copy()
         new_moves.remove((row, col))
         score = minimax(board, new_moves, 0, False, ai_player_symbol, human_player_symbol)

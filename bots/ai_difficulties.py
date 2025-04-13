@@ -4,7 +4,7 @@ from game.logic import symbolic_win_check
 from bots.minimax import best_move
 import copy
 
-def random_bot(button_clicked, board=None, ai_player_symbol=None):
+def random_bot(button_clicked, board=None, ai_player_symbol=None, human_player_symbol=None):
     available_moves_count = len(session_state.availableMoves)
     try:
         random_pick = randint(0, available_moves_count-1)
