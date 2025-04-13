@@ -1,5 +1,5 @@
 # Tic-Tac-Toe with AI opponents
-### Made with Streamlit
+### Made with [Streamlit](https://streamlit.io/)
 
 A simple Tic-Tac-Toe application with 3 levels of computer opponents-Easy, Medium and Hard:
 - Easy choses random moves
