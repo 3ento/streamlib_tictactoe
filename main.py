@@ -13,7 +13,6 @@ main_col1, main_col2 = st.columns([2, 1], border=True)
 player_symbols = {
     0:"", 1: "X", 2: "O"
 }
-
 initiate_session()
 
 def button_clicked(row, col):

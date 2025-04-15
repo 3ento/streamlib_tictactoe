@@ -95,6 +95,20 @@ custom_css = """
             left: auto;
         }
         
+        @media only screen and (max-width: 1000px) {
+            .st-emotion-cache-4r4kk3 {
+                width: 100vw;
+            }
+            
+            .st-emotion-cache-1sp3dp6 {
+                width: 100vw;
+            }
+            .st-emotion-cache-y6hsj5 {
+                width: 20vw;
+                min-width: auto;
+            }
+        }
+        
     </style>
     """
 
